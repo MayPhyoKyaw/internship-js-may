@@ -1,49 +1,257 @@
 import React from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import Head from 'next/head';
 import {loadFirebase} from '../lib/db.js';
 
-export default class index extends React.Component {
-  componentDidMount () {
-    const script = document.createElement("script");
-    script.src = "/scripts/pagination.js";
-    script.async = true;
-    document.body.appendChild(script);
+export default class Index extends React.Component {
+
+  constructor(props) {
+    super(props)
+    this.datatableRef = React.createRef();
+    this.$datatable = null
+    this.state = {
+      allJobs : props.job || [],
+      cities : props.city || [],
+      areas : props.area || [],
+      jobLimit : props.joblimit || [],
+    }
   }
 
   static async getInitialProps() {
     let firebase = await loadFirebase() 
-    let result = await new Promise((resolve, reject) => {
-      firebase.firestore().collection('job')
-        .limit(10)
+    const jobQuerySnapshot = await firebase
+            .firestore()
+            .collection("job")
+            .get();
+    const jobs = jobQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+    }));
+    const joblimitQuery = await firebase
+            .firestore()
+            .collection("job")
+            .limit(8)
+            .orderBy("postedDate")
+            .get();
+    const jobLimit = joblimitQuery.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+      }));  
+    const areaQuerySnapshot = await firebase
+            .firestore()
+            .collection("area")
+            .get();
+    const areas = areaQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+    }));
+    const cityQuerySnapshot = await firebase
+        .firestore()
+        .collection("city")
+        .get();
+    const cities = cityQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+    }));
+
+    return {job: jobs, joblimit: jobLimit.reverse(), area : areas, city : cities}
+  }
+
+  componentDidMount() {
+    this.initializeDatatable()
+  }
+
+  initializeDatatable() {
+    this.$datatable = $(this.datatableRef.current).DataTable({
+      "ordering" : false,
+      "oLanguage": {
+        "sLengthMenu": "Showing _MENU_ items per page", 
+      }
+    });
+  }
+
+  refreshTable() {
+    const self = this;
+    Index
+      .getInitialProps()
+      .then((response) => {
+        self.setState({
+          jobs: response.job,
+        });
+      })
+      .bind(this);
+  }
+
+  handleChange = (event) => {
+    this.setState({[event.target.name] : event.target.value})
+    if(event.target.name == "AREAID"){
+        this.getCities(event.target.value)
+    }
+    this.setState({showCities : true})
+  }
+
+  getCities = (id) => {
+    let cities = []
+    try{
+        let firebase = loadFirebase()
+        firebase.firestore().collection('city').where('AREAID',"==",id)
         .get()
-        .then(snapshot => {
-          console.log(snapshot)
-          let data = []
-          snapshot.forEach((doc) => {
-            data.push(
-              Object.assign({
-                id: doc.id
-              }, doc.data())
-            )
-          })
-          console.log(data)
-          resolve(data)
+        .then((snapshot)=> {
+            snapshot.forEach(doc => {
+                cities.push(Object.assign(
+                    {id : doc.id},
+                    doc.data()
+                ))
+            })
+            console.log({cities})
+            this.setState({cities})
         })
-        .catch(error => {
-          reject([])
-        })
-    })
-    console.log(result)
-    return {job: result}
+    }catch(error){
+        console.log(error)
+    }
+  };
+
+  dateSorted = (event) => {
+    let jobs = []
+    this.setState({[event.target.name] : event.target.value})
+    if(event.target.value == "old_to_new"){
+        try{
+            let firebase = loadFirebase()
+            firebase.firestore().collection('job').orderBy('postedDate').get()
+            .then(snaphsot => {
+                snaphsot.forEach(doc=>{
+                    jobs.push(Object.assign(
+                      {id : doc.id},
+                      doc.data()
+                  ))
+                })
+                this.setState({allJobs : jobs})
+            })
+        }catch(error){
+            console.log(error)
+        }
+    }else if(event.target.value == "new_to_old"){
+        try{
+          let firebase = loadFirebase()
+          firebase.firestore().collection('job').orderBy('postedDate').get()
+            .then(snaphsot => {
+                snaphsot.forEach(doc=>{
+                    jobs.push(Object.assign(
+                      {id : doc.id},
+                      doc.data()
+                  ))
+                })
+                this.setState({allJobs : jobs.reverse()})
+            })
+        }catch(error){
+            console.log(error)
+        }
+    }else {
+        try{
+          let firebase = loadFirebase()
+          firebase.firestore().collection('job').get()
+            .then(snaphsot => {
+                snaphsot.forEach(doc=>{
+                    jobs.push(Object.assign(
+                      {id : doc.id},
+                      doc.data()
+                  ))
+                })
+                this.setState({allJobs : jobs})
+            })
+        }catch(error){
+            console.log(error)
+        }
+    }
   }
 
   render() {
-    const job = this.props.job
+    const allJobs = this.state.allJobs
+    const cities = this.state.cities
+    const areas = this.state.areas
     return (
-    <html>
-      <Head>
+  <html>
+    <Head>
         <title>Job Seeker-Home</title>
+        <style js>{`
+        .dataTables_wrapper .dataTables_paginate .paginate_button{
+          color: white;
+          background: #FFFFFF;
+          font-size: 22px;
+          font-weight: 600;
+          line-height: 30.5px;
+          padding: 0;
+          margin: 0 5px;
+          position: relative;
+          border: 2px solid #103370;
+          border-radius: 10px;
+          box-shadow: 0 0 5px rgba(0,0,0,0.2);
+          z-index: 1;
+          transition: all 0.3s ease 0s;
+      }
+      .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+      .dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+      .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+      .dataTables_wrapper .dataTables_paginate .paginate_button:focus,
+      .dataTables_wrapper .dataTables_paginate .paginate_button.current:focus{
+          color: white;
+          background: linear-gradient(to right,#2b56a0,#103370,#2b56a0);
+          border: 2px solid #103370;
+      }
+      .dataTables_wrapper .dataTables_paginate .paginate_button:before,
+      .dataTables_wrapper .dataTables_paginate .paginate_button:after{
+          content: '';
+          background: transparent;
+          color: white;
+          height: 50%;
+          width: 50%;
+          transform: translateX(-50%);
+          position: absolute;
+          left: 50%;
+          top: 0;
+          z-index: -1;
+          transition: all 0.3s ease 0s;
+          clip-path: polygon(0 0, 100% 0, 50% 100%);
+      }
+      .dataTables_wrapper .dataTables_paginate .paginate_button:after{
+          top: auto;
+          bottom: 0;
+          clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      }
+      .dataTables_wrapper .dataTables_paginate .paginate_button:hover:before,
+      .dataTables_wrapper .dataTables_paginate .paginate_button:focus:before,
+      .dataTables_wrapper .dataTables_paginate .paginate_button.current:before{
+          background-color: #103370;
+          top: -10px;
+      }
+      .dataTables_wrapper .dataTables_paginate .paginate_button:hover:after,
+      .dataTables_wrapper .dataTables_paginate .paginate_button:focus:after,
+      .dataTables_wrapper .dataTables_paginate .paginate_button.current:after{
+          background-color: #103370;
+          bottom: -10px;
+      }
+      .dataTables_filter input{
+        width: 400px;
+        height: 50px;
+        border: 2px solid #192D59;
+        border-radius: 10px;
+        font-size: 25px
+      }
+      .dataTables_wrapper .dataTables_filter{
+        text-align: left;
+        font-size: 25px;
+      }
+      .dataTables_wrapper .dataTables_length{
+        font-size: 20px;
+        font-family: "Trebuchet MS", Helvetica, sans-serif;
+      }
+      .dataTables_info {
+        font-size: 20px;
+        font-weight: bold;
+        font-family: "Trebuchet MS", Helvetica, sans-serif;
+      }
+    `}</style>
     </Head>
 <body>
   <nav className="navbar nav-color sticky-top">
@@ -78,42 +286,37 @@ export default class index extends React.Component {
         <h1 style={{fontFamily: "Lucida Console"}}>Job Seeker Japan</h1>
         <br/>
         <div className="dropdown">
-          <select name="area" id="area" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
+          <select name="AREAID" id="area" className="btn btn-primary" onChange={this.handleChange} style={{background: "#2C5197", marginRight:10}}>
             <option selected disabled>Select Area</option>
-            <option value="1">Hokkaidou</option>
-            <option value="2">Honshu</option>
-            <option value="3">Shikoku</option>
-            <option value="4">Kyushu</option>
-            <option value="5">Okinawa</option>
+            {this.state.areas.map(Area => (this.state.AREAID == Area.id ? 
+                <option value={Area.id}>{Area.areaName}</option> : 
+                <option value={Area.id}>{Area.areaName}</option>
+            ))}
           </select>
-            <select name="city" id="city" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
-              <option selected disabled>Select City</option>
-              <option value="1">Sapporo</option>
-              <option value="2">Tokyo</option>
-              <option value="3">Osaka</option>
-              <option value="4">Yokohama</option>
-              <option value="5">Kyoto</option>
-              <option value="6">Hiroshima</option>
-            </select>
+            {this.state.showCities && (
+              <select name="CITYID" id="city" className="btn btn-primary" onChange={this.handleChange} style={{background: "#2C5197", marginRight:10}}>
+                  <option selected disabled>Select City</option>
+                  {cities &&  cities.map(city => (
+                      <option value={city.id}>{city.cityName}</option>
+                  ))}
+              </select>
+            )}
             <select name="japaneseSkill" id="japaneseSkill" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
               <option selected disabled>Select Japanese Skill</option>
-            <option value="1">N3 and above</option>
-            <option value="2">N2 and above</option>
-            <option value="3">N1</option>
+              <option value="3">N3 and above</option>
+              <option value="2">N2 and above</option>
+              <option value="1">N1</option>
+            </select>
+            <select name="employmentStatus" id="employmentStatus" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
+              <option selected disabled>Select Employment Status</option>
+              <option value="Full-Time">Full-Time</option>
+              <option value="Part-Time">Part-Time</option>
             </select>
         </div>
         <br/>
         <div className="dropdown">
-          <select name="employmentStatus" id="employmentStatus" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
-            <option selected disabled>Select Employment Status</option>
-            <option value="1">Full-Time</option>
-            <option value="2">Part-Time</option>
-          </select>
-            <select name="minSalary" id="minSalary" className="btn btn-primary" style={{background: "#2C5197", marginRight:10}}>
-              <option selected disabled>Select Minimum Salary</option>
-              <option value="1">50000</option>
-              <option value="2">60000</option>
-            </select>
+          <input type="number" className="btn btn-primary" id="minSalary" name="minSalary" placeholder="Enter Minimum Salary" value={this.state.minSalary} style={{background: "#2C5197", marginRight:10}} />
+          <input type="number" className="btn btn-primary" id="maxSalary" name="maxSalary" placeholder="Enter Maximum Salary" value={this.state.maxSalary}style={{background: "#2C5197", marginRight:10}} />
           <button type="button" className="btn btn-success">Search</button>
         </div>
     </div> 
@@ -123,291 +326,91 @@ export default class index extends React.Component {
       <div className="h-25" id="job">
           <h2 style={{fontFamily: "Lucida Sans Unicode", paddingBottom:15 }}>Recommended Jobs</h2>
       </div>
-        <div className="row">
-        {job &&  
-        job.map(Job => (
-          <div className="col-sm-6 box" key={Job.id}>
-            <h3>{Job.jobName} </h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
+      <div className="row">
+        {this.state.jobLimit.map(Jobs => (
+          <div className="col-sm-6 box" key={Jobs.id}>
+            <h3>{Jobs.jobName} </h3>
+            <Link href={`/detail?job=${Jobs.id}`}>
+              <a><button type="button" className="btn btn-info btn-float" style={{background:"#1D85CA"}}>View Detail</button></a>
+            </Link>
+            <small><i>Posted on {Jobs.postedDate}</i></small> 
             <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
+              <span className="badge badge-info" style={{marginRight:10, background:"#1D85CA"}}>{Jobs.employmentStatus}</span>
+              <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Jobs.japaneseSkill} and above</span>
             </div>
               <table>
                 <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: {Job.minSalary} ~ {Job.maxSalary}</p></td>
+                  <td><p>Working Location: {Jobs.jobAddress}</p></td>
+                  <td><p>Salary: {Jobs.minSalary} ~ {Jobs.maxSalary}</p></td>
                 </tr>
                 <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
+                  <td><p>Working Days: {Jobs.workingDays} days a week</p></td>
+                  <td><p>Working Hours: {Jobs.workingHours}</p></td>
                 </tr>
               </table>
           </div>
-        )
-      )}
-    </div>
-        
-
-          <div className="row">
-            <div className="col-sm-6 box">
-              <h3>Employer Name</h3>
-              <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-              <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-              <div className="m-b">
-                <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-                <span className="badge badge-info">N2 and above</span>
-              </div>
-                <table>
-                  <tr>
-                    <td><p>Working Location: Tokyo</p></td>
-                    <td><p>Salary: Monthly wages 80000 yen</p></td>
-                  </tr>
-                  <tr>
-                    <td><p>Working Days: 4 days a week</p></td>
-                    <td><p>Working Hours: 9:00~3:00</p></td>
-                  </tr>
-                </table>
-            </div>
-            <div className="col-sm-6 box">
-                <h3>Employer Name</h3>
-                <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-                <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-                <div className="m-b">
-                  <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-                  <span className="badge badge-info">N2 and above</span>
-                </div>
-                <table>
-                  <tr>
-                    <td><p>Working Location: Tokyo</p></td>
-                    <td><p>Salary: Monthly wages 80000 yen</p></td>
-                  </tr>
-                  <tr>
-                    <td><p>Working Days: 4 days a week</p></td>
-                    <td><p>Working Hours: 9:00~3:00</p></td>
-                  </tr>
-                </table>
-            </div>
-          </div> 
-
-          <div className="row">
-        <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
-                <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
-                </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div> 
-
-          <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
-                <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
-                </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div>        
-        </div>
-
+        ))}
+      </div>
           <div className="center">
-            <a data-toggle="tab" href="#list"><button type="button" className="btn btn-secondary">View More</button></a>
+            <a data-toggle="tab" href="#list"><button type="button" className="btn btn-secondary" style={{background:"#33588f", color: "#EBF1F6", width: 250+"px", borderColor:" #B0C4DE" }}>View More</button></a>
           </div>  
       </div>
 
-      <div className="container tab-pane" id="list">
+    <div className="container tab-pane" id="list" style={{marginBottom: 30}}>
       <div className="h-25">
       <div className="row">
         <div className="col-sm-8">
           <h2 style={{fontFamily: "Lucida Sans Unicode" }}>All Jobs List</h2>
         </div>
         <div className="col-sm-4">
-          <select name="dateFilter" id="dateFilter" className="btn-float select-css">
+          <select name="sortby" id="dateFilter" className="btn-float select-css" onChange={this.dateSorted}>
             <option selected disabled>Filtered by Date</option>
-            <option value="1">Oldest to Newest</option>
-            <option value="2">Newest to Oldest</option>
+            <option value="old_to_new">Oldest to Newest</option>
+            <option value="new_to_old">Newest to Oldest</option>
           </select>
         </div>
       </div>
       </div>
-        <div className="row">
-          <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
+    
+    <table ref={this.datatableRef} className="display" style={{width:100+"%", marginBottom:20}}>
+            <thead>
                 <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
+                    <th></th>
                 </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div>
-
-          <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
-                <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
-                </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div>        
-        </div>
-
-          <div className="row">
-            <div className="col-sm-6 box">
-              <h3>Employer Name</h3>
-              <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-              <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
+            </thead>
+        <tbody>
+         {this.state.allJobs && this.state.allJobs.map(Job => (
+           <tr id={Job.id}>
+            <td className="box" style={{paddingLeft: 40, paddingRight: 40, paddingTop: 30}}>
+              <h3>{Job.jobName} </h3>
+              <Link href={`/detail?job=${Job.id}`}>
+                <a><button type="button" className="btn btn-info btn-float" style={{background:"#1D85CA"}}>View Detail</button></a>
+              </Link>
               <div className="m-b">
-                <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-                <span className="badge badge-info">N2 and above</span>
+              <small><i>Posted on {Job.postedDate}</i></small> &nbsp;
+                <span className="badge badge-info" style={{marginRight:10, background:"#1D85CA"}}>{Job.employmentStatus}</span>
+                <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Job.japaneseSkill} and above</span>
               </div>
-                <table>
-                  <tr>
-                    <td><p>Working Location: Tokyo</p></td>
-                    <td><p>Salary: Monthly wages 80000 yen</p></td>
-                  </tr>
-                  <tr>
-                    <td><p>Working Days: 4 days a week</p></td>
-                    <td><p>Working Hours: 9:00~3:00</p></td>
-                  </tr>
-                </table>
-            </div>
-            <div className="col-sm-6 box">
-                <h3>Employer Name</h3>
-                <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-                <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-                <div className="m-b">
-                  <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-                  <span className="badge badge-info">N2 and above</span>
+              <div className="row">
+                <div className="col-sm-6">
+                   <p>Working Location: {Job.jobAddress}</p>
+                   <p>Salary: {Job.minSalary} ~ {Job.maxSalary}</p>
                 </div>
-                <table>
-                  <tr>
-                    <td><p>Working Location: Tokyo</p></td>
-                    <td><p>Salary: Monthly wages 80000 yen</p></td>
-                  </tr>
-                  <tr>
-                    <td><p>Working Days: 4 days a week</p></td>
-                    <td><p>Working Hours: 9:00~3:00</p></td>
-                  </tr>
-                </table>
-            </div>
-          </div> 
-
-          <div className="row">
-        <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
-                <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
-                </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div> 
-
-          <div className="col-sm-6 box">
-            <h3>Employer Name</h3>
-            <a href="/detail"><button type="button" className="btn btn-info btn-float">View Detail</button></a>
-            <small><i>Posted on Feb 19, 2016, 15:17</i></small> 
-            <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10}}>Part Time</span>
-              <span className="badge badge-info">N2 and above</span>
-            </div>
-              <table>
-                <tr>
-                  <td><p>Working Location: Tokyo</p></td>
-                  <td><p>Salary: Monthly wages 80000 yen</p></td>
-                </tr>
-                <tr>
-                  <td><p>Working Days: 4 days a week</p></td>
-                  <td><p>Working Hours: 9:00~3:00</p></td>
-                </tr>
-              </table>
-            </div>        
-        </div>
-
-        <div className="row" style={{paddingBottom:5}}>
-          <div className="col-sm-7">
-            <h5>Showing 1 to 10 of 25 Jobs</h5>
-          </div>
-          <div className="col-sm-5">
-          <nav className="pagination-outer" aria-label="Page navigation" style={{float:"right"}}>
-            <ul className="pagination pagination-style">
-              <li className="page-item">
-                <a href="#" className="page-link" aria-label="Previous">
-                    <span aria-hidden="true">«</span>
-                </a>
-              </li>
-              <li className="page-item active"><a className="page-link" href="#">1</a></li>
-              <li className="page-item"><a className="page-link" href="#">2</a></li>
-              <li className="page-item"><a className="page-link" href="#">3</a></li>
-              <li className="page-item"><a className="page-link" href="#">4</a></li>
-              <li className="page-item">
-                <a href="#" className="page-link" aria-label="Next">
-                    <span aria-hidden="true">»</span>
-                </a>
-              </li>
-            </ul>
-          </nav>
-          </div>
-        </div>
+                <div className="col-sm-6">
+                    <p>Working Days: {Job.workingDays} days a week</p>
+                    <p>Working Hours: {Job.workingHours}</p>
+                </div>
+              </div>
+            </td>
+            </tr>
+          ))}
+        </tbody>
+    </table>
     </div>
-  </div> 
-        
+  </div>
+
       <div className="jumbotron text-left p-3 foot-color" style={{marginBottom: 0}}>
-        <h3 style={{paddingTop: 20}}>Contact &nbsp; | &nbsp; <a href="/About"> About Us</a></h3> 
+        <h3 style={{paddingTop: 20, color: "#0C364B"}}>Contact &nbsp; | &nbsp; <a href="/About" style={{color: "#026FB4"}}> About Us</a></h3> 
         <br/>
         <table>
             <tr>
@@ -429,6 +432,4 @@ export default class index extends React.Component {
         <footer className="text-center">copyright&#169;jobseeker.co.jp</footer>         
 </body>
 </html>
-  )
-}
-}
+  )} }
