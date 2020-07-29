@@ -45,6 +45,7 @@ export default class jobList extends React.Component {
 
     initializeDatatable() {
       this.$datatable = $(this.datatableRef.current).DataTable({
+          
           order: [[3, "desc"]],
         });
     }
@@ -262,13 +263,14 @@ export default class jobList extends React.Component {
                 areaName = Area.areaName
             }
         })
-       return cityName + "," + areaName
+       return cityName + ", " + areaName
      }
 
     getArea = (id) => {
         let area = {}
         try{
-          db.collection('area')
+            let firebase = loadFirebase()
+            firebase.firestore().collection('area')
             .doc(id)
             .get()
             .then((areaQuerySnapshot)=>{
