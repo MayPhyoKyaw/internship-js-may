@@ -1,10 +1,129 @@
 import React from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
+import {loadFirebase} from '../lib/db.js';
 
 export default class detail extends React.Component {
-  
+
+  static async getInitialProps ({req, res, query}){
+    let job = {}
+    
+    const firebase = loadFirebase();
+    const querySnapshot = await firebase.firestore().collection("job").doc(query.job).get()
+    job = querySnapshot.data()
+
+        const employerQuerySnapshot = await firebase
+                    .firestore()
+                    .collection("employer")
+                    .limit(10)
+                    .get();
+        const employers = employerQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+        }));
+        const areaQuerySnapshot = await firebase
+            .firestore()
+            .collection("area")
+            .limit(10)
+            .get();
+        const areas = areaQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+        }));
+        
+        const cityQuerySnapshot = await firebase
+        .firestore()
+        .collection("city")
+        .get();
+        const cities = cityQuerySnapshot.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+        }));
+
+      return({employers, areas, cities, job})
+  }
+
+  employerName = (EMPLOYERID) => {
+    const employers = this.props.employers
+    let employerName = ''
+    console.log(EMPLOYERID)
+    employers && employers.map(Employers => {
+        if(Employers.id == EMPLOYERID){
+            employerName = Employers.employerName
+        }
+    })
+    return employerName;
+  }
+
+  employerAddress = (EMPLOYERID) => {
+    const employers = this.props.employers
+    let employerAddress = ''
+    console.log(EMPLOYERID)
+    employers && employers.map(Employers => {
+        if(Employers.id == EMPLOYERID){
+            employerAddress = Employers.employerAddress
+        }
+    })
+    return employerAddress;
+  }
+
+  employerEmail = (EMPLOYERID) => {
+    const employers = this.props.employers
+    let employerEmail = ''
+    console.log(EMPLOYERID)
+    employers && employers.map(Employers => {
+        if(Employers.id == EMPLOYERID){
+            employerEmail = Employers.employerEmail
+        }
+    })
+    return employerEmail;
+  }
+
+  employerPhone = (EMPLOYERID) => {
+    const employers = this.props.employers
+    let employerPhone = ''
+    console.log(EMPLOYERID)
+    employers && employers.map(Employers => {
+        if(Employers.id == EMPLOYERID){
+            employerPhone = Employers.employerPhone
+        }
+    })
+    return employerPhone;
+  }
+
+  companyDescription = (EMPLOYERID) => {
+    const employers = this.props.employers
+    let companyDescription = ''
+    console.log(EMPLOYERID)
+    employers && employers.map(Employers => {
+        if(Employers.id == EMPLOYERID){
+          companyDescription = Employers.companyDescription
+        }
+    })
+    return companyDescription;
+  }
+
+  jobLocation = (CITYID, AREAID) => {
+    const city = this.props.cities
+    const area = this.props.areas
+    let cityName = ''
+    let areaName = ''
+
+    city && city.map(City=>{
+        if(City.id == CITYID){
+            cityName = City.cityName
+        }
+    })
+    area && area.map(Area=>{
+        if(Area.id == AREAID){
+            areaName = Area.areaName
+        }
+    })
+   return cityName + ", " + areaName
+  }
+
   render() {
+    const job = this.props.job
     return (
 <html>
 <Head>
@@ -42,24 +161,21 @@ export default class detail extends React.Component {
     <div className="container-fluid" style={{paddingTop:30}}>
         <div className="row content">
             <div className="col-sm-7 detail-margin">
-                <h2 className="text-center job-title">Nursing Care</h2>
+                <h2 className="text-center job-title">{job.jobName}</h2>
                 <hr className="new1"/>
-                <span className="badge badge-light btn-float" style={{marginRight:30}}>Posted Date: 2020/6/20, 8:20</span>
+                <span className="badge badge-light btn-float" style={{marginRight:30}}>Posted Date: {job.postedDate}</span>
                 <h4 className="head-style">Job Description</h4>
                 <p className="para">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-                  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-                  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-                  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.                  
+                  {job.jobDescription}            
                 </p>
                 <h4 className="head-style">Frequent Answer Question</h4>
                 <p className="para">
                     Q: I have no experience or knowledge of this job, but is it okay? <br/>
-                    A: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.  <br/>
+                    A: {job.FAQ1}  <br/>
                     Q: this is my first time... to do? <br/>
-                    A: Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.<br/>
+                    A: {job.FAQ2}<br/>
                     Q: Is there flexibility in time and days? <br/>
-                    A: Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.  <br/>
+                    A: {job.FAQ3}  <br/>
                 </p>
                 <div className="center" style={{paddingTop: 50}}>
                   <button type="button" className="btn apply" style={{backgroundColor:"#7af706", color: "rgb(4, 15, 24)"}}>Apply Now</button>
@@ -68,24 +184,25 @@ export default class detail extends React.Component {
             <div className="col-sm-4 detail-margin">
               <h4 className="req-title job-title text-center">Application Requirements</h4>
               <ul style={{listStyle: "none"}}>
-                <li className="li-padding"><b>Employment Status:</b>&nbsp;Full-Time </li>
-                <li className="li-padding"><b>Age Range:</b>&nbsp; 23~25 years old</li>
-                <li className="li-padding"><b>Working Hours:</b>&nbsp; 9:00~5:00</li>
-                <li className="li-padding"> <b>Working Days:</b>&nbsp; 5 days a week</li>
-                <li className="li-padding"><b>Minimum Salary:</b>&nbsp; 60000 yen</li>
-                <li className="li-padding"><b>Maximum Salary:</b>&nbsp; 150000 yen</li>
-                <li className="li-padding"><b>Working Place:</b> &nbsp;Hokkaidou, Sapporo</li>
-                <li className="li-padding"><b>Japanese Skill:</b>&nbsp; N2 and above</li>
-                <li className="li-padding"><b>Qualification:</b>&nbsp; English skill: preintermediate and no experiences years...</li>
-                <li className="li-padding"><b>Job Address:</b>&nbsp; No.00, "A" Road, "A" township.</li>
+                <li className="li-padding"><b>Employment Status:</b>&nbsp;{job.employmentStatus}</li>
+                <li className="li-padding"><b>Age Range:</b>&nbsp; {job.ageRange} years old</li>
+                <li className="li-padding"><b>Working Hours:</b>&nbsp; {job.workingHours}</li>
+                <li className="li-padding"> <b>Working Days:</b>&nbsp; {job.workingDays} days a week</li>
+                <li className="li-padding"><b>Minimum Salary:</b>&nbsp; {job.minSalary} yen</li>
+                <li className="li-padding"><b>Maximum Salary:</b>&nbsp; {job.maxSalary} yen</li>
+                <li className="li-padding"><b>Japanese Skill:</b>&nbsp; N{job.japaneseSkill} and above</li>
+                <li className="li-padding"><b>Qualification:</b>&nbsp; {job.qualification}</li>
+                <li className="li-padding"><b>Job Address:</b>&nbsp; {job.jobAddress}</li>
+                <li className="li-padding"><b>Working Place:</b> &nbsp;{this.jobLocation(job.CITYID, job.AREAID)} </li>
               </ul>
                     
               <hr className="new1"/>
               <h3 className="text-left job-title"><u>Company Information</u></h3>
-              <p><b>Employer or Company Name:</b> Lorem ipsum </p>
-              <p><b>Address:</b> Hokkaido, Sapporo, ...</p>
-              <p><b>Email:</b> Lorem@ipsum.co.jp</p>
-              <p><b>Phone Number:</b> +00-11-000-1111</p>    
+              <p><b>Employer or Company Name:</b> {this.employerName(job.EMPLOYERID)} </p>
+              <p><b>Address:</b> {this.employerAddress(job.EMPLOYERID)}</p>
+              <p><b>Email:</b> {this.employerEmail(job.EMPLOYERID)}</p>
+              <p><b>Phone Number:</b> +{this.employerPhone(job.EMPLOYERID)}</p>   
+              <p><b>Company Description</b><br/> {this.companyDescription(job.EMPLOYERID)}</p> 
             </div>
         </div>
     </div>
@@ -109,7 +226,7 @@ export default class detail extends React.Component {
             </tr>
         </table>
     </div>      
-  <footer className="text-center">copyright&#169;jobseeker.co.jp</footer>
+  <footer className="text-center">copyright&#169;jobseeker.co.jp</footer> 
 </body>
 </html>
 )}}
