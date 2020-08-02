@@ -1,7 +1,7 @@
 import React, { useReducer } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import {loadFirebase} from '../lib/db.js';
+import {loadFirebase, JOB_COLLECTION, AREA_COLLECTION, CITY_COLLECTION, EMPLOYER_COLLECTION, getCollectionRecords} from '../lib/db.js';
 
 export default class employerList extends React.Component {
 
@@ -39,6 +39,7 @@ export default class employerList extends React.Component {
             employers: props.employer || [],
             jobs : props.jobs || [],
             areas: props.area || [],
+            cities: props.city || [],
         };
         this.state = this.initial_state;
     }
@@ -79,42 +80,10 @@ export default class employerList extends React.Component {
 
     static async getInitialProps() {
         const firebase = await loadFirebase() 
-        const employerQuerySnapshot = await firebase
-            .firestore()
-            .collection("employer")
-            .limit(10)
-            .get();
-        const employers = employerQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
-        const areaQuerySnapshot = await firebase
-            .firestore()
-            .collection("area")
-            .limit(10)
-            .get();
-        const areas = areaQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
-        
-        const cityQuerySnapshot = await firebase
-        .firestore()
-        .collection("city")
-        .get();
-        const cities = cityQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
-
-        const jobQuerySnapshot = await firebase
-        .firestore()
-        .collection("job")
-        .get();
-        const jobs = jobQuerySnapshot.docs.map((doc) => ({
-            data : doc.data(),
-            id: doc.id,
-        }));
+        const jobs = await getCollectionRecords(JOB_COLLECTION)
+        const areas = await getCollectionRecords(AREA_COLLECTION) 
+        const cities = await getCollectionRecords(CITY_COLLECTION) 
+        const employers = await getCollectionRecords(EMPLOYER_COLLECTION) 
         return { employer: employers, area: areas, city : cities , jobs : jobs };
     }
 
@@ -279,7 +248,6 @@ export default class employerList extends React.Component {
                         doc.data()
                     ))
                 })
-                console.log({cities})
                 this.setState({cities})
             })
         }catch(error){
@@ -353,8 +321,15 @@ export default class employerList extends React.Component {
         $("#city option:first").attr("selected","selected"); 
     }
 
+    disable = (event) => {   
+        $("#employmentStatus option:first").attr("disabled","disabled"); 
+        $("#japaneseSkill option:first").attr("disabled","disabled"); 
+        $("#city option:first").attr("disabled","disabled");
+        $("#area option:first").attr("disabled","disabled"); 
+    }
+
+
   render() {
-    // const area = this.props.area
     const cities = this.state.cities
     return (
 <html>
@@ -363,7 +338,7 @@ export default class employerList extends React.Component {
 </head>
 <body>
     <nav className="navbar bg-color sticky-top" style={{width: 100 + "%"}}>
-        <img src="/p1.jpg" height="35" width="200" />
+        <img src="/p1.jpg" height="45" width="200" />
         <ul className="nav nav-tabs box-margin">
             <li className="nav-item">
               <a className="nav-link" href="/jobList" style={{color: "aliceblue"}}>Job</a>
@@ -407,12 +382,12 @@ export default class employerList extends React.Component {
                     <tbody>
                     {this.state.employers.map((Employer) => (
                         <tr key={Employer.id}>
-                            <td>{Employer.employerName}</td>
-                            <td>{Employer.employerEmail}</td>
-                            <td>{Employer.employerPhone}</td>
+                            <td>{Employer.data.employerName}</td>
+                            <td>{Employer.data.employerEmail}</td>
+                            <td>{Employer.data.employerPhone}</td>
                             <td>{this.jobCount(Employer.id)}</td>
-                            <td>{Employer.employerAddress}</td>
-                            <td>{Employer.companyDescription}</td>
+                            <td>{Employer.data.employerAddress}</td>
+                            <td>{Employer.data.companyDescription}</td>
                             <td>
                                 <a><button onClick={()=>this.addPassId(Employer.id)}  className="view btn btn-success fa fa-plus-circle" title="add" style={{cursor:"pointer", margin:"auto"}} data-dismiss="modal" data-toggle="tooltip"> Add Job </button></a> &nbsp; <br/>
                                 <a><button onClick={()=>this.editPassId(Employer.id)} className="edit btn btn-warning fa fa-pencil-square-o" title="Edit" style={{ cursor:"pointer"}} data-dismiss="modal" data-toggle="tooltip"> </button></a> &nbsp;
@@ -574,7 +549,7 @@ export default class employerList extends React.Component {
 			<div className="modal-content">
 					<div className="modal-header">						
                         <h4 className="modal-title" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif", fontWeight: "bolder"}}>{this.state.employerName}</h4>
-						<button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<button type="button" className="close" data-dismiss="modal" aria-hidden="true" onClick={this.clearInput}>&times;</button>
 					</div>
 					<form action="#" method="post" style={{width: 100+"%", margin:"auto", marginTop: 20}} onSubmit={this.addJob}>
                                 <div className="card-header p-0">
@@ -661,9 +636,9 @@ export default class employerList extends React.Component {
                                                       <div className="input-group-text"><i className="fa fa-map-marked text-info"></i></div>
                                                   </div>
                                                   <select name="AREAID" id="area" className="form-control" onClick={this.selectDisable} onChange={this.handleChange} value={this.state.selectedValue} required>
-                                                    <option selected disabled>Select Area</option>
+                                                    <option>Select Area</option>
                                                     {this.state.areas.map(jobArea => (
-                                                        <option value={jobArea.id}>{jobArea.areaName}</option>
+                                                        <option value={jobArea.id}>{jobArea.data.areaName}</option>
                                                     ))}
                                                   </select>
                                               </div>
@@ -690,7 +665,7 @@ export default class employerList extends React.Component {
                                                     </div>
                                                     {this.state.showCities && (
                                                     <select name="CITYID" id="city" className="form-control" onClick={this.selectDisable} onChange={this.handleChange} value={this.state.selectedValue} required>
-                                                        <option selected disabled>Select City</option>
+                                                        <option>Select City</option>
                                                         {cities &&  cities.map(city => (
                                                             <option value={city.id}>{city.cityName}</option>
                                                         ))}
@@ -719,7 +694,7 @@ export default class employerList extends React.Component {
                                                     <div className="input-group-text"><i className="fa fa-user-clock text-info"></i></div>
                                                 </div>
                                                 <select name="employmentStatus" id="employmentStatus" className="form-control" onChange={this.handleChange} value={this.state.selectedValue} required>
-                                                  <option selected disabled>Select Employment Status</option>
+                                                  <option>Select Employment Status</option>
                                                   <option value="Full-Time">Full-Time</option>
                                                   <option value="Part-Time">Part-Time</option>
                                                 </select>
@@ -732,7 +707,7 @@ export default class employerList extends React.Component {
                                                         <div className="input-group-text"><i className="fa fa-award text-info"></i></div>
                                                     </div>
                                                     <select name="japaneseSkill" id="japaneseSkill" className="form-control" onChange={this.handleChange} value={this.state.selectedValue} required>
-                                                        <option selected disabled >Select Minimum Japanese Skill</option>
+                                                        <option>Select Minimum Japanese Skill</option>
                                                         <option value="3">N3</option>
                                                         <option value="2">N2</option>
                                                         <option value="1">N1</option>
@@ -821,7 +796,7 @@ export default class employerList extends React.Component {
                         </form>
 					<div className="modal-footer">
                         <input type="button" onClick={this.addJob} value="Add" className="btn btn-info btn-width rounded-4 py-2" data-dismiss="modal" style={{marginRight:10}} />
-                        <input type="button" className="btn btn-secondary" data-dismiss="modal" value="Cancel" />
+                        <input type="button" className="btn btn-secondary" data-dismiss="modal" value="Cancel" onClick={this.clearInput} />
 					</div>
 			</div>
 		</div>
