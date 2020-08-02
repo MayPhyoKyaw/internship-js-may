@@ -49,6 +49,12 @@ export default class employerList extends React.Component {
     }
     initializeDatatable() {
         this.$datatable = $(this.datatableRef.current).DataTable({
+            "language": {
+                "sLengthMenu": "Showing _MENU_ entries per page", 
+                "info": "From _START_ to _END_ of Total _TOTAL_ Entries",
+                "infoEmpty": "Result Found: 0 Item",
+                "zeroRecords": "No Matching Result Found"
+            },
             order: [[3, "desc"]],
         });
     }
@@ -334,7 +340,29 @@ export default class employerList extends React.Component {
     return (
 <html>
 <head>
-    <title>Job Seeker Admin-Job List</title>   
+    <title>Job Seeker Admin-Job List</title>  
+    <style js>{`
+        .dataTables_filter input{
+            width: 350px;
+            height: 45px;
+            border: 2px solid #192D59;
+            border-radius: 10px;
+            font-size: 25px
+        }
+        .dataTables_wrapper .dataTables_filter{
+            text-align: left;
+            font-size: 20px;
+          }
+          .dataTables_wrapper .dataTables_length{
+            font-size: 20px;
+            font-family: "Trebuchet MS", Helvetica, sans-serif;
+          }
+          .dataTables_info {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: "Trebuchet MS", Helvetica, sans-serif;
+          }
+    `}</style> 
 </head>
 <body>
     <nav className="navbar bg-color sticky-top" style={{width: 100 + "%"}}>
