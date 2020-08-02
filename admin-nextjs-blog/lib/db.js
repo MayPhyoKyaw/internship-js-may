@@ -23,3 +23,20 @@ export function loadFirebase (){
     }
     return firebase;
 }
+
+export const JOB_COLLECTION = loadFirebase().firestore().collection('job')
+export const AREA_COLLECTION = loadFirebase().firestore().collection('area')
+export const CITY_COLLECTION = loadFirebase().firestore().collection('city')
+export const EMPLOYER_COLLECTION = loadFirebase().firestore().collection('employer') 
+
+export const getCollectionRecords = async (collection) => {
+  const querySnapshot = await collection.get()
+  let data = []
+  querySnapshot.forEach(doc => {
+      data.push(Object.assign({
+        data : doc.data(),
+        id: doc.id,
+      }))
+    })
+  return data 
+}
