@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import {loadFirebase} from '../lib/db.js';
+import {loadFirebase, JOB_COLLECTION, AREA_COLLECTION, CITY_COLLECTION, EMPLOYER_COLLECTION, getCollectionRecords} from '../lib/db.js';
 
 export default class detail extends React.Component {
 
@@ -11,34 +11,10 @@ export default class detail extends React.Component {
     const firebase = loadFirebase();
     const querySnapshot = await firebase.firestore().collection("job").doc(query.job).get()
     job = querySnapshot.data()
-
-        const employerQuerySnapshot = await firebase
-                    .firestore()
-                    .collection("employer")
-                    .limit(10)
-                    .get();
-        const employers = employerQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
-        const areaQuerySnapshot = await firebase
-            .firestore()
-            .collection("area")
-            .limit(10)
-            .get();
-        const areas = areaQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
-        
-        const cityQuerySnapshot = await firebase
-        .firestore()
-        .collection("city")
-        .get();
-        const cities = cityQuerySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        }));
+    
+    const areas = await getCollectionRecords(AREA_COLLECTION) 
+    const cities = await getCollectionRecords(CITY_COLLECTION) 
+    const employers = await getCollectionRecords(EMPLOYER_COLLECTION)
 
       return({employers, areas, cities, job})
   }
@@ -49,7 +25,7 @@ export default class detail extends React.Component {
     console.log(EMPLOYERID)
     employers && employers.map(Employers => {
         if(Employers.id == EMPLOYERID){
-            employerName = Employers.employerName
+            employerName = Employers.data.employerName
         }
     })
     return employerName;
@@ -61,7 +37,7 @@ export default class detail extends React.Component {
     console.log(EMPLOYERID)
     employers && employers.map(Employers => {
         if(Employers.id == EMPLOYERID){
-            employerAddress = Employers.employerAddress
+            employerAddress = Employers.data.employerAddress
         }
     })
     return employerAddress;
@@ -73,7 +49,7 @@ export default class detail extends React.Component {
     console.log(EMPLOYERID)
     employers && employers.map(Employers => {
         if(Employers.id == EMPLOYERID){
-            employerEmail = Employers.employerEmail
+            employerEmail = Employers.data.employerEmail
         }
     })
     return employerEmail;
@@ -85,7 +61,7 @@ export default class detail extends React.Component {
     console.log(EMPLOYERID)
     employers && employers.map(Employers => {
         if(Employers.id == EMPLOYERID){
-            employerPhone = Employers.employerPhone
+            employerPhone = Employers.data.employerPhone
         }
     })
     return employerPhone;
@@ -97,7 +73,7 @@ export default class detail extends React.Component {
     console.log(EMPLOYERID)
     employers && employers.map(Employers => {
         if(Employers.id == EMPLOYERID){
-          companyDescription = Employers.companyDescription
+          companyDescription = Employers.data.companyDescription
         }
     })
     return companyDescription;
@@ -111,12 +87,12 @@ export default class detail extends React.Component {
 
     city && city.map(City=>{
         if(City.id == CITYID){
-            cityName = City.cityName
+            cityName = City.data.cityName
         }
     })
     area && area.map(Area=>{
         if(Area.id == AREAID){
-            areaName = Area.areaName
+            areaName = Area.data.areaName
         }
     })
    return cityName + ", " + areaName
@@ -131,7 +107,7 @@ export default class detail extends React.Component {
 </Head>
 <body>
   <nav className="navbar nav-color sticky-top">
-      <a href="/index"><img src="/p1.jpg" height="35" width="200" style={{marginLeft: 15}}/></a>
+      <a href="/index"><img src="/p1.jpg" height="45" width="200" style={{marginLeft: 15}}/></a>
       <button type="button" className="btn btn-primary btn-float signin" data-toggle="modal" data-target="#myModal" style={{background: "#2C5197"}}>Sign In</button>
   </nav> 
   <div className="modal" id="myModal">
