@@ -98,6 +98,12 @@ export default class detail extends React.Component {
    return cityName + ", " + areaName
   }
 
+  getDate = (object) => {
+    var t = new Date(1970, 0, 1);
+    t.setSeconds(object.seconds);
+    return t.getDate()+'/'+(t.getMonth()+1)+'/'+t.getFullYear()
+  }
+
   render() {
     const job = this.props.job
     return (
@@ -139,7 +145,7 @@ export default class detail extends React.Component {
             <div className="col-sm-7 detail-margin">
                 <h2 className="text-center job-title">{job.jobName}</h2>
                 <hr className="new1"/>
-                <span className="badge badge-light btn-float" style={{marginRight:30}}>Posted Date: {job.postedDate}</span>
+                <span className="badge badge-light btn-float" style={{marginRight:30}}>Posted Date: {this.getDate(job.postedDate)}</span>
                 <h4 className="head-style">Job Description</h4>
                 <p className="para">
                   {job.jobDescription}            
@@ -153,11 +159,18 @@ export default class detail extends React.Component {
                     Q: Is there flexibility in time and days? <br/>
                     A: {job.FAQ3}  <br/>
                 </p>
+                <hr className="new1"/>
+                <h3 className="text-left job-title"><u>Company Information</u></h3>
+                <p><b>Employer or Company Name:</b> {this.employerName(job.EMPLOYERID)} </p>
+                <p><b>Address:</b> {this.employerAddress(job.EMPLOYERID)}</p>
+                <p><b>Email:</b> {this.employerEmail(job.EMPLOYERID)}</p>
+                <p><b>Phone Number:</b> +{this.employerPhone(job.EMPLOYERID)}</p>   
+                <p><b>Company Description</b><br/> {this.companyDescription(job.EMPLOYERID)}</p> 
                 <div className="center" style={{paddingTop: 50}}>
-                  <button type="button" className="btn apply" style={{backgroundColor:"#7af706", color: "rgb(4, 15, 24)"}}>Apply Now</button>
-                </div>
+                      <button type="button" className="btn apply" style={{backgroundColor:"#7af706", color: "rgb(4, 15, 24)"}}>Apply Now</button>
+                </div> 
             </div>
-            <div className="col-sm-4 detail-margin">
+            <div className="col-sm-4">
               <h4 className="req-title job-title text-center">Application Requirements</h4>
               <ul style={{listStyle: "none"}}>
                 <li className="li-padding"><b>Employment Status:</b>&nbsp;{job.employmentStatus}</li>
@@ -171,14 +184,6 @@ export default class detail extends React.Component {
                 <li className="li-padding"><b>Job Address:</b>&nbsp; {job.jobAddress}</li>
                 <li className="li-padding"><b>Working Place:</b> &nbsp;{this.jobLocation(job.CITYID, job.AREAID)} </li>
               </ul>
-                    
-              <hr className="new1"/>
-              <h3 className="text-left job-title"><u>Company Information</u></h3>
-              <p><b>Employer or Company Name:</b> {this.employerName(job.EMPLOYERID)} </p>
-              <p><b>Address:</b> {this.employerAddress(job.EMPLOYERID)}</p>
-              <p><b>Email:</b> {this.employerEmail(job.EMPLOYERID)}</p>
-              <p><b>Phone Number:</b> +{this.employerPhone(job.EMPLOYERID)}</p>   
-              <p><b>Company Description</b><br/> {this.companyDescription(job.EMPLOYERID)}</p> 
             </div>
         </div>
     </div>
