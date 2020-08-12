@@ -469,9 +469,14 @@ export default class Index extends React.Component {
               <option value="Part-Time">Part-Time</option>
           </select>
           <input type="number" className="btn btn-primary" id="minSalary" name="minSalary" onChange={this.handleChange} placeholder="Enter Minimum Salary" value={this.state.minSalary} style={{background: "#2C5197", marginRight:10, marginBottom: 5}} />
-        
-          <button id="btnSearch" type="button" className="btn btn-success" data-toggle="tab" href="#filter" onClick={this.filter} style={{marginBottom: 5}}>Search</button>
-          <button id="btnReset" type="button" className="btn btn-danger" data-toggle="tab" href="#list" onClick={this.reset} style={{marginLeft : 10}}>Reset</button>
+          <ul className="nav center" style={{marginTop: 20, paddingBottom: 0}}>
+            <li className="nav-item">
+              <button id="btnSearch" type="button" className="btn btn-success" data-toggle="tab" href="#filter" onClick={this.filter} style={{marginBottom: 5}}>Search</button>
+            </li>
+            <li className="nav-item">
+              <button id="btnReset" type="button" className="btn btn-danger" data-toggle="tab" href="#list" onClick={this.reset} style={{marginLeft : 10}}>Reset</button>
+            </li>
+          </ul>
         </div>
       </div> 
 
@@ -501,16 +506,16 @@ export default class Index extends React.Component {
           </div>
         ))}
       </div>
-          <div className="center">
-            <a data-toggle="tab" href="#list"><button type="button" className="btn btn-secondary" style={{background:"#33588f", color: "#EBF1F6", width: 250+"px", borderColor:" #B0C4DE" }}>View More</button></a>
-          </div>  
-      </div>
+      <div className="center">
+          <a data-toggle="tab" href="#list"><button type="button" className="btn btn-secondary" style={{background:"#33588f", color: "#EBF1F6", width: 250+"px", borderColor:" #B0C4DE" }}>View More</button></a>
+      </div>  
+    </div>
 
     <div className="container tab-pane" id="list" style={{marginBottom: 30}}>
       <div className="h-25">
       <div className="row">
         <div className="col-sm-8">
-          
+          <h3>Total {this.state.allJobs.length} Jobs</h3>
         </div>
         <div className="col-sm-4">
           <select name="sortby" id="dateFilter" className="btn-float select-css" onChange={this.dateSorted}>
@@ -521,13 +526,12 @@ export default class Index extends React.Component {
         </div>
       </div>
       </div>
-    
       <table ref={this.datatableRef1} id="example" className="display" style={{width:100+"%"}}>
-                    <thead className="thread-color">
-                        <tr>
-                          <td></td>
-                        </tr>
-                    </thead>
+        <thead className="thread-color">
+          <tr>
+              <td></td>
+          </tr>
+        </thead>
         <tbody>
          {this.state.allJobs && this.state.allJobs.map(Job => (
            <tr id={Job.id}>
@@ -555,12 +559,20 @@ export default class Index extends React.Component {
             </tr>
           ))}
         </tbody>
-    </table>
+      </table>
     </div>
     {this.state.filteredJob.length<=0 && this.state.noJobFound && <div className="container" style={{paddingTop: 30, paddingLeft: 50, fontSize: 30}}>No Jobs Found</div> }
     <div className="container tab-pane" id="filter" style={{marginBottom: 30}}>
-    
-    <table ref={this.datatableRef2} id="example" className="display" style={{width:100+"%"}}>
+    <div className="h-25">
+      <div className="row">
+        <div className="col-sm-8">
+          <h3>{this.state.filteredJob.length} Jobs</h3>
+        </div>
+        <div className="col-sm-4">
+        </div>
+      </div>
+      </div>
+      <table ref={this.datatableRef2} id="example" className="display" style={{width:100+"%"}}>
                     <thead className="thread-color">
                         <tr>
                           <td></td>
@@ -592,11 +604,10 @@ export default class Index extends React.Component {
             </td>
             </tr>
           ))}
-     </tbody>
-    </table>
+        </tbody>
+      </table>
     </div>
   </div>
-
       <div className="jumbotron text-left p-1 foot-color" style={{marginBottom: 0}}>
         <h3 style={{color: "#0C364B", paddingLeft:30}}>Contact &nbsp; | &nbsp; <a href="/About" style={{color: "#026FB4"}}> About Us</a></h3> 
         <br/>
@@ -616,8 +627,7 @@ export default class Index extends React.Component {
             </tr>
         </table>
       </div> 
-
-        <footer className="text-center">copyright&#169;jobseeker.co.jp</footer>         
-</body>
-</html>
-  )} }
+      <footer className="text-center">copyright&#169;jobseeker.co.jp</footer>         
+  </body>
+  </html>
+)}}
