@@ -1,7 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import {loadFirebase, JOB_COLLECTION, AREA_COLLECTION, CITY_COLLECTION, EMPLOYER_COLLECTION, getCollectionRecords} from '../lib/db.js';
+import {
+  loadFirebase, 
+  AREA_COLLECTION, 
+  CITY_COLLECTION, 
+  EMPLOYER_COLLECTION, 
+  getCollectionRecords, 
+} from '../lib/db.js';
 
 export default class detail extends React.Component {
 
@@ -14,24 +20,22 @@ export default class detail extends React.Component {
     
     const areas = await getCollectionRecords(AREA_COLLECTION) 
     const cities = await getCollectionRecords(CITY_COLLECTION) 
-    const employers = await getCollectionRecords(EMPLOYER_COLLECTION)
-
+    const employers = await getCollectionRecords(EMPLOYER_COLLECTION) 
       return({employers, areas, cities, job})
   }
 
-  employerName = (EMPLOYERID) => {
+  getEmployerName = (employerId) => {
     const employers = this.props.employers
     let employerName = ''
-    console.log(EMPLOYERID)
     employers && employers.map(Employers => {
-        if(Employers.id == EMPLOYERID){
+        if(Employers.id == employerId){
             employerName = Employers.data.employerName
         }
     })
     return employerName;
   }
 
-  employerAddress = (EMPLOYERID) => {
+  getEmployerAddress = (EMPLOYERID) => {
     const employers = this.props.employers
     let employerAddress = ''
     console.log(EMPLOYERID)
@@ -43,7 +47,7 @@ export default class detail extends React.Component {
     return employerAddress;
   }
 
-  employerEmail = (EMPLOYERID) => {
+  getEmployerEmail = (EMPLOYERID) => {
     const employers = this.props.employers
     let employerEmail = ''
     console.log(EMPLOYERID)
@@ -55,7 +59,7 @@ export default class detail extends React.Component {
     return employerEmail;
   }
 
-  employerPhone = (EMPLOYERID) => {
+  getEmployerPhone = (EMPLOYERID) => {
     const employers = this.props.employers
     let employerPhone = ''
     console.log(EMPLOYERID)
@@ -67,7 +71,7 @@ export default class detail extends React.Component {
     return employerPhone;
   }
 
-  companyDescription = (EMPLOYERID) => {
+  getCompanyDescription = (EMPLOYERID) => {
     const employers = this.props.employers
     let companyDescription = ''
     console.log(EMPLOYERID)
@@ -79,7 +83,7 @@ export default class detail extends React.Component {
     return companyDescription;
   }
 
-  jobLocation = (CITYID, AREAID) => {
+  getJobLocation = (CITYID, AREAID) => {
     const city = this.props.cities
     const area = this.props.areas
     let cityName = ''
@@ -161,11 +165,11 @@ export default class detail extends React.Component {
                 </p>
                 <hr className="new1"/>
                 <h3 className="text-left job-title"><u>Company Information</u></h3>
-                <p><b>Employer or Company Name:</b> {this.employerName(job.EMPLOYERID)} </p>
-                <p><b>Address:</b> {this.employerAddress(job.EMPLOYERID)}</p>
-                <p><b>Email:</b> {this.employerEmail(job.EMPLOYERID)}</p>
-                <p><b>Phone Number:</b> +{this.employerPhone(job.EMPLOYERID)}</p>   
-                <p><b>Company Description</b><br/> {this.companyDescription(job.EMPLOYERID)}</p> 
+                <p><b>Employer or Company Name:</b> {this.getEmployerName(job.EMPLOYERID)} </p>
+                <p><b>Address:</b> {this.getEmployerAddress(job.EMPLOYERID)}</p>
+                <p><b>Email:</b> {this.getEmployerEmail(job.EMPLOYERID)}</p>
+                <p><b>Phone Number:</b> +{this.getEmployerPhone(job.EMPLOYERID)}</p>   
+                <p><b>Company Description</b><br/> {this.getCompanyDescription(job.EMPLOYERID)}</p> 
                 <div className="center" style={{paddingTop: 50}}>
                       <button type="button" className="btn apply" style={{backgroundColor:"#7af706", color: "rgb(4, 15, 24)"}}>Apply Now</button>
                 </div> 
@@ -182,7 +186,7 @@ export default class detail extends React.Component {
                 <li className="li-padding"><b>Japanese Skill:</b>&nbsp; N{job.japaneseSkill} and above</li>
                 <li className="li-padding"><b>Qualification:</b>&nbsp; {job.qualification}</li>
                 <li className="li-padding"><b>Job Address:</b>&nbsp; {job.jobAddress}</li>
-                <li className="li-padding"><b>Working Place:</b> &nbsp;{this.jobLocation(job.CITYID, job.AREAID)} </li>
+                <li className="li-padding"><b>Working Place:</b> &nbsp;{this.getJobLocation(job.CITYID, job.AREAID)} </li>
               </ul>
             </div>
         </div>
