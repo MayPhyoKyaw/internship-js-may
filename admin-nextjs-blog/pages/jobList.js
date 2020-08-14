@@ -1,7 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import {loadFirebase, JOB_COLLECTION, AREA_COLLECTION, CITY_COLLECTION, EMPLOYER_COLLECTION, getCollectionRecords} from '../lib/db.js';
+import {
+    loadFirebase, 
+    JOB_COLLECTION, 
+    AREA_COLLECTION, 
+    CITY_COLLECTION, 
+    EMPLOYER_COLLECTION, 
+    getCollectionRecords, 
+    getRecordsByCondition,
+    getRecord
+} from '../lib/db.js';
 
 export default class jobList extends React.Component {
 
@@ -74,7 +83,7 @@ export default class jobList extends React.Component {
         const jobs = await getCollectionRecords(JOB_COLLECTION)
         const areas = await getCollectionRecords(AREA_COLLECTION) 
         const cities = await getCollectionRecords(CITY_COLLECTION) 
-        const employers = await getCollectionRecords(EMPLOYER_COLLECTION) 
+        const employers = await getCollectionRecords(EMPLOYER_COLLECTION)
         return {job : jobs, area : areas, city : cities, employer: employers};
     }
 
@@ -226,7 +235,7 @@ export default class jobList extends React.Component {
         return employerName
      }
 
-     getLocation = (CITYID, AREAID) => {
+    getLocation = (CITYID, AREAID) => {
         const city = this.props.city
         const area = this.props.area
         let cityName = ''
@@ -245,21 +254,10 @@ export default class jobList extends React.Component {
        return cityName + ", " + areaName
      }
 
-    getArea = (id) => {
-        let area = {}
-        try{
-            let firebase = loadFirebase()
-            firebase.firestore().collection('area')
-            .doc(id)
-            .get()
-            .then((areaQuerySnapshot)=>{
-                area = areaQuerySnapshot.data();
-                this.setState({areaName : area.areaName})
-          })
-        }catch(error){
-            console.log(error)
-        }
-    }
+    getArea =  (areaId) => {
+        const area = getRecord(AREA_COLLECTION, areaId)
+        this.setState({ areaName: area.areaName });
+    };
 
     form_clear = (event) => {
         this.setState(this.initial_state);
@@ -289,6 +287,12 @@ export default class jobList extends React.Component {
         $("#japaneseSkill option:first").attr("disabled","disabled"); 
         $("#city option:first").attr("disabled","disabled");
         $("#area option:first").attr("disabled","disabled"); 
+    }
+
+    getDate = (object) => {
+        var t = new Date(1970, 0, 1);
+        t.setSeconds(object.seconds);
+        return t.getDate()+'/'+(t.getMonth()+1)+'/'+t.getFullYear()
     }
 
   render() {
@@ -369,11 +373,11 @@ export default class jobList extends React.Component {
                     {this.state.jobs.map(Job => (
                         <tr id={Job.id}>
                             <td>{Job.data.jobName}</td>
-                            <td>{this.getEmployer(Job.EMPLOYERID)}</td>
+                            <td style={{width: 150}}>{this.getEmployer(Job.data.EMPLOYERID)}</td>
                             <td>{Job.data.employmentStatus}</td>
-                            <td>N{Job.data.japaneseSkill}</td>
+                            <td style={{width: 70}}>N{Job.data.japaneseSkill}</td>
                             <td>{Job.data.minSalary}~{Job.data.maxSalary}</td>
-                            <td>{Job.data.postedDate}</td>
+                            <td>{this.getDate(Job.data.postedDate)}</td>
                             <td style={{width:120}}>
                                 <a><i onClick={()=>this.viewPassId(Job.id)} className="view material-icons icon-padding" title="View" style={{color: "rgb(0, 110, 255)", cursor:"pointer"}} data-dismiss="modal" data-toggle="tooltip">&#xE417;</i></a> &nbsp;
                                 <a><i onClick={()=>this.editPassId(Job.id)} className="edit material-icons icon-padding" title="Edit" style={{color: "yellow", cursor:"pointer"}} data-dismiss="modal" data-toggle="tooltip">&#xE254;</i></a>&nbsp;
@@ -401,37 +405,36 @@ export default class jobList extends React.Component {
 		<div className="modal-dialog info-dialog">
 			<div className="modal-content">
 					<div className="modal-header">						
-						<h4 className="modal-title" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif", fontWeight: "bolder"}}>Detail Information</h4>
+						<h4 className="modal-title" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif", fontWeight: "bolder"}}>{this.getEmployer(this.state.EMPLOYERID)}</h4>
 						<button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 					</div>
 					<div className="modal-body" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif"}}>
                         <ul className="list-group">
-                            <li className="list-group-item">Posted Date: {this.state.postedDate}</li>
-                            <li className="list-group-item">Employer Name: {this.getEmployer(this.state.EMPLOYERID)}</li>
-                            <li className="list-group-item">Job Name: {this.state.jobName}</li>
-                            <li className="list-group-item">Phone Number: {this.state.jobPhone}</li>
-                            <li className="list-group-item">Email: {this.state.jobEmail}</li>
-                            <li className="list-group-item">Address: {this.state.jobAddress}, {this.getLocation(this.state.CITYID,this.state.AREAID)} </li>
-                            <li className="list-group-item">Employment Status: {this.state.employmentStatus}</li>
-                            <li className="list-group-item">Salary: {this.state.minSalary}~{this.state.maxSalary} Yen</li>
-                            <li className="list-group-item">Working Days: {this.state.workingDays} Days per Week</li>
-                            <li className="list-group-item">Working Hours:{this.state.workingHours}</li>
-                            <li className="list-group-item">Age Range: {this.state.ageRange} years old</li>
-                            <li className="list-group-item">Minimum Japanese Skill: N{this.state.japaneseSkill}</li>
-                            <li className="list-group-item">Job Description: {this.state.jobDescription}</li>
+                            <li className="list-group-item"><b>Posted Date:</b> {this.getDate(this.state.postedDate)}</li>
+                            <li className="list-group-item"><b>Job Name:</b> {this.state.jobName}</li>
+                            <li className="list-group-item"><b>Phone Number:</b> {this.state.jobPhone}</li>
+                            <li className="list-group-item"><b>Email:</b> {this.state.jobEmail}</li>
+                            <li className="list-group-item"><b>Address:</b> {this.state.jobAddress}, {this.getLocation(this.state.CITYID,this.state.AREAID)} </li>
+                            <li className="list-group-item"><b>Employment Status:</b> {this.state.employmentStatus}</li>
+                            <li className="list-group-item"><b>Salary:</b> {this.state.minSalary}~{this.state.maxSalary} Yen</li>
+                            <li className="list-group-item"><b>Working Days:</b> {this.state.workingDays} Days per Week</li>
+                            <li className="list-group-item"><b>Working Hours:</b> {this.state.workingHours}</li>
+                            <li className="list-group-item"><b>Age Range:</b> {this.state.ageRange} years old</li>
+                            <li className="list-group-item"><b>Minimum Japanese Skill:</b> N{this.state.japaneseSkill}</li>
+                            <li className="list-group-item"><b>Job Description:</b> {this.state.jobDescription}</li>
                             <li className="list-group-item">
-                                Q1: I have no experience or knowledge of this job, but is it okay?<br/>
-                                A1: {this.state.FAQ1}
+                                <b>Q1:</b> I have no experience or knowledge of this job, but is it okay?<br/>
+                                <b>A1:</b> {this.state.FAQ1}
                             </li>
                             <li className="list-group-item">
-                                Q2: this is my first time... to do?<br/>
-                                A2: {this.state.FAQ2}
+                                <b>Q2:</b> this is my first time... to do?<br/>
+                                <b>A2:</b> {this.state.FAQ2}
                             </li>
                             <li className="list-group-item">
-                                Q3: Is there flexibility in time and days?<br/>
-                                A3: {this.state.FAQ3}
+                                <b>Q3:</b> Is there flexibility in time and days?<br/>
+                                <b>A3:</b> {this.state.FAQ3}
                             </li>
-                            <li className="list-group-item">Qualification: {this.state.qualification}</li>
+                            <li className="list-group-item"><b>Qualification:</b> {this.state.qualification}</li>
                         </ul>		
 					</div>
 					<div className="modal-footer">
