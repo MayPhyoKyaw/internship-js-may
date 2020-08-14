@@ -45,10 +45,13 @@ export default class employerList extends React.Component {
     }
 
     componentDidMount () {
-        this.initializeDatatable()
+        this.initializeDatatable();
+        document.getElementById("city").disabled = true;
     }
+
     initializeDatatable() {
         this.$datatable = $(this.datatableRef.current).DataTable({
+            "lengthMenu": [5, 10, 20, 50, 100],
             "language": {
                 "sLengthMenu": "Showing _MENU_ entries per page", 
                 "info": "From _START_ to _END_ of Total _TOTAL_ Entries",
@@ -58,6 +61,7 @@ export default class employerList extends React.Component {
             order: [[3, "desc"]],
         });
     }
+
     refreshTable() {
         this.$datatable.clear()
         const self = this;
@@ -100,7 +104,6 @@ export default class employerList extends React.Component {
     }
 
     addPassId = (id) => {
-        this.setState({edit_id : id})
         let firebase = loadFirebase()
         let data = {}
         try{
@@ -170,23 +173,52 @@ export default class employerList extends React.Component {
         $("#editEmployerModal").modal('hide')
     }
 
-    jobCount = (id) => {
+    jobCount = (employerId) => {
         let jobs= this.state.jobs
         let count = 0
             jobs.map(job => {
-                 if(job.data.EMPLOYERID == id){
+                 if(job.data.EMPLOYERID == employerId){
                      count ++
                  } 
              })
              return count;     
     }
 
+    getJobNameByEmployer = (employerId) => {
+        let firebase = loadFirebase()
+        let data = []
+        console.log(employerId)
+        try{
+            firebase.firestore().collection('job').where('EMPLOYERID','==',employerId).get()
+            .then(snapshot => {
+                snapshot.forEach(doc=>{
+                    data.push(Object.assign({
+                        id : doc.id,
+                        data : doc.data()
+                    }))
+                })
+                this.setState({generatedJobs : data})
+            })
+            firebase.firestore().collection('employer').doc(employerId).get().
+            then((snapshot)=>{
+                data = snapshot.data()
+                this.setState ({
+                    employerName : data.employerName,
+                })
+            })
+        }catch(error){
+            console.log(error)
+        }
+        $("#viewJobModal").modal('show')   
+    }
+
     handleChange = (event) => {
         this.setState({[event.target.name] : event.target.value})
         if(event.target.name == "AREAID"){
             this.getCities(event.target.value)
+            document.getElementById("city").disabled = false;
+            $("#city option:first").attr("selected","selected");
         }
-        this.setState({showCities : true})
     }
 
     addJob = event => {
@@ -208,7 +240,7 @@ export default class employerList extends React.Component {
                         employmentStatus : this.state.employmentStatus,
                         japaneseSkill : this.state.japaneseSkill,
                         jobAddress : this.state.jobAddress,
-                        postedDate : this.state.postedDate,
+                        postedDate : new Date(),
                         jobDescription : this.state.jobDescription,
                         qualification : this.state.qualification,
                         FAQ1 : this.state.FAQ1,
@@ -325,6 +357,8 @@ export default class employerList extends React.Component {
         $("#area option:first").attr("selected","selected"); 
         $("#city option[selected]").removeAttr("selected");    
         $("#city option:first").attr("selected","selected"); 
+
+        document.getElementById("city").disabled = true;
     }
 
     disable = (event) => {   
@@ -333,7 +367,6 @@ export default class employerList extends React.Component {
         $("#city option:first").attr("disabled","disabled");
         $("#area option:first").attr("disabled","disabled"); 
     }
-
 
   render() {
     const cities = this.state.cities
@@ -411,11 +444,15 @@ export default class employerList extends React.Component {
                     {this.state.employers.map((Employer) => (
                         <tr key={Employer.id}>
                             <td>{Employer.data.employerName}</td>
-                            <td>{Employer.data.employerEmail}</td>
-                            <td>{Employer.data.employerPhone}</td>
-                            <td>{this.jobCount(Employer.id)}</td>
-                            <td>{Employer.data.employerAddress}</td>
-                            <td>{Employer.data.companyDescription}</td>
+                            <td> 
+                                <a href={"mailto:" + Employer.data.employerEmail}>
+                                    <i style={{cursor:"pointer", textDecoration:"underline", color:"#0A3768"}}>{Employer.data.employerEmail}</i>
+                                </a>
+                            </td>
+                            <td >{Employer.data.employerPhone}</td>
+                            <td className="text-center"><i onClick={()=>this.getJobNameByEmployer(Employer.id)} style={{cursor:"pointer", textDecoration:"underline", color:"#0A3768"}} data-dismiss="modal" data-toggle="tooltip">{this.jobCount(Employer.id)}</i></td>
+                            <td style={{width: 180}}>{Employer.data.employerAddress}</td>
+                            <td style={{width: 220}}>{Employer.data.companyDescription}</td>
                             <td>
                                 <a><button onClick={()=>this.addPassId(Employer.id)}  className="view btn btn-success fa fa-plus-circle" title="add" style={{cursor:"pointer", margin:"auto"}} data-dismiss="modal" data-toggle="tooltip"> Add Job </button></a> &nbsp; <br/>
                                 <a><button onClick={()=>this.editPassId(Employer.id)} className="edit btn btn-warning fa fa-pencil-square-o" title="Edit" style={{ cursor:"pointer"}} data-dismiss="modal" data-toggle="tooltip"> </button></a> &nbsp;
@@ -572,6 +609,30 @@ export default class employerList extends React.Component {
 		</div>
 	</div>
 
+    <div id="viewJobModal" className="modal fade" style={{width: 50+"%", top: 10+"%", left:25+"%"}}>
+		<div className="modal-dialog info-dialog">
+			<div className="modal-content">
+					<div className="modal-header">						
+						<h4 className="modal-title" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif", fontWeight: "bolder"}}>{this.state.employerName}</h4>
+						<button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					</div>
+					<div className="modal-body" style={{fontFamily: "'Lucida Sans Unicode', 'Lucida Grande', sans-serif"}}>
+                        {this.state.generatedJobs && this.state.generatedJobs.length > 0 && (
+                            <ul className="list-group">
+                            {this.state.generatedJobs && this.state.generatedJobs.map(job => (
+                                <li className="list-group-item">{job.data.jobName}</li>
+                            ))}
+                            
+                        </ul> 
+                        ) || (
+                            <p className="alert">No Jobs</p>
+                        )}
+                        		
+					</div>
+			</div>
+		</div>
+	</div>
+
     <div id="addJobModal" className="modal fade">
 		<div className="modal-dialog info-dialog">
 			<div className="modal-content">
@@ -604,7 +665,7 @@ export default class employerList extends React.Component {
                                                     <div className="input-group-prepend">
                                                         <div className="input-group-text"><i className="fa fa-calendar-alt text-info"></i></div>
                                                     </div>
-                                                    <input type="number" className="form-control" id="workingDays" name="workingDays" placeholder="Working Days per Week" onChange={this.handleChange} value={this.state.workingDays} required /> &nbsp; days per week
+                                                    <input type="text" className="form-control" id="workingDays" name="workingDays" placeholder="Working Days per Week" onChange={this.handleChange} value={this.state.workingDays} required /> &nbsp;
                                                 </div>
                                             </div>
                                         </div>
@@ -691,7 +752,6 @@ export default class employerList extends React.Component {
                                                     <div className="input-group-prepend">
                                                         <div className="input-group-text"><i className="fa fa-map-marked text-info"></i></div>
                                                     </div>
-                                                    {this.state.showCities && (
                                                     <select name="CITYID" id="city" className="form-control" onClick={this.selectDisable} onChange={this.handleChange} value={this.state.selectedValue} required>
                                                         <option>Select City</option>
                                                         {cities &&  cities.map(city => (
@@ -699,7 +759,6 @@ export default class employerList extends React.Component {
                                                         ))}
                                                     
                                                     </select>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -746,22 +805,12 @@ export default class employerList extends React.Component {
                                     </div>
                                     
                                     <div className="row">
-                                        <div className="col-sm-6">
+                                        <div className="col-sm-12">
                                             <div className="input-group mb-2">
                                                 <div className="input-group-prepend">
                                                     <div className="input-group-text"><i className="fas fa-map-marked-alt text-info"></i></div>
                                                 </div>
                                                 <textarea className="form-control" id="jobAddress" name="jobAddress" placeholder="Enter Address" onChange={this.handleChange} value={this.state.jobAddress} required></textarea>
-                                            </div>
-                                        </div>
-                                        <div className="col-sm-6">
-                                            <div className="form-group">
-                                                <div className="input-group mb-2">
-                                                    <div className="input-group-prepend">
-                                                        <div className="input-group-text"><i className="fa fa-calendar text-info"> Posted Date</i></div>
-                                                    </div>
-                                                    <input type="date" id="postedDate" name="postedDate" class="form-control" value="datetime" onChange={this.handleChange} value={this.state.postedDate} required/>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
