@@ -1,5 +1,48 @@
 import firebase from 'firebase/app'
 import 'firebase/firestore'
+export const AREA_COLLECTION = "area";
+export const CITY_COLLECTION = "city";
+export const EMPLOYER_COLLECTION = "employer";
+export const JOB_COLLECTION = "job";
+
+export const getCollectionRecords = async (collectionName) => {
+  const querySnapshot = await firebase
+    .firestore()
+    .collection(collectionName)
+    .get();
+  const records = querySnapshot.docs.map((doc) => ({
+    data: doc.data(),
+    id: doc.id,
+  }));
+  return records;
+};
+
+export const getRecordsByCondition = async (
+  collectionName,
+  condition, // { fieldName, operator, value },
+  sort // {fieldName, 'asc' | 'desc' }
+) => {
+  const querySnapshot = await firebase
+    .firestore()
+    .collection(collectionName)
+    .where(condition.fieldName, condition.operator, condition.value)
+    .orderBy(sort.fieldName, sort.direction)
+    .get();
+  const records = querySnapshot.docs.map((doc) => ({
+    ...doc.data(),
+    id: doc.id,
+  }));
+  return records;
+};
+
+export const getRecord = async (collectionName, id) => {
+  const documentSnapshot = await firebase
+    .firestore()
+    .collection(collectionName)
+    .doc(id)
+    .get();
+  return documentSnapshot.data();
+};
 
 export function loadFirebase (){
     try{
@@ -22,21 +65,4 @@ export function loadFirebase (){
         }
     }
     return firebase;
-}
-
-export const JOB_COLLECTION = loadFirebase().firestore().collection('job')
-export const AREA_COLLECTION = loadFirebase().firestore().collection('area')
-export const CITY_COLLECTION = loadFirebase().firestore().collection('city')
-export const EMPLOYER_COLLECTION = loadFirebase().firestore().collection('employer') 
-
-export const getCollectionRecords = async (collection) => {
-  const querySnapshot = await collection.get()
-  let data = []
-  querySnapshot.forEach(doc => {
-      data.push(Object.assign({
-        data : doc.data(),
-        id: doc.id,
-      }))
-    })
-  return data 
 }
