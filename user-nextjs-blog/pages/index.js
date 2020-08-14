@@ -1,8 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
-import axios from 'axios';
 import Head from 'next/head';
-import {loadFirebase, JOB_COLLECTION, AREA_COLLECTION, CITY_COLLECTION, EMPLOYER_COLLECTION, getCollectionRecords} from '../lib/db.js';
+import {
+  loadFirebase, 
+  JOB_COLLECTION, 
+  AREA_COLLECTION, 
+  CITY_COLLECTION, 
+  EMPLOYER_COLLECTION, 
+  getCollectionRecords, 
+  getRecordsByCondition,
+  getRecord
+} from '../lib/db.js';
 
 export default class Index extends React.Component {
 
@@ -95,101 +103,35 @@ export default class Index extends React.Component {
     
     this.setState({[event.target.name] : event.target.value})
     if(event.target.name == "AREAID"){
-        this.getAreas(event.target.value)
+        this.getArea(event.target.value)
         this.getCities(event.target.value)
         document.getElementById("city").disabled = false;
         $("#city option:first").attr("selected","selected");
     }
   }
 
-  getAreas = (id) => {
-    let area = {}
-    try{
-      const firebase = loadFirebase()
-      firebase.firestore().collection('area').doc(id).get()
-      .then((snapshot)=>{
-          area = snapshot.data();
-          this.setState({areaName : area.areaName})
-      })  
-    }catch(error){
-        console.log(error)
-    }
-  }
-
-  getCities = (id) => {
-    let cities = []
-    try{
-        let firebase = loadFirebase()
-        firebase.firestore().collection('city')
-          .where('AREAID',"==",id)
-          .get()
-          .then((snapshot)=> {
-              snapshot.forEach(doc => {
-                  cities.push(Object.assign(
-                      {id : doc.id},
-                      doc.data()
-                  ))
-              })
-              console.log({cities})
-              this.setState({cities})
-        })
-    }catch(error){
-        console.log(error)
-    }
+  getArea =  (areaId) => {
+    const area = getRecord(AREA_COLLECTION, areaId)
+    this.setState({ areaName: area.areaName });
   };
 
-  dateSorted = (event) => {
-    let jobs = []
-    this.setState({[event.target.name] : event.target.value})
-    if(event.target.value == "old_to_new"){
-        try{
-            let firebase = loadFirebase()
-            firebase.firestore().collection('job').orderBy('postedDate').get()
-            .then(snaphsot => {
-                snaphsot.forEach(doc=>{
-                    jobs.push(Object.assign({
-                      id : doc.id,
-                      data: doc.data()
-                    }))
-                })
-                this.setState({allJobs : jobs})
-            })
-        }catch(error){
-            console.log(error)
-        }
-    }else if(event.target.value == "new_to_old"){
-        try{
-          let firebase = loadFirebase()
-          firebase.firestore().collection('job').orderBy('postedDate').get()
-            .then(snaphsot => {
-                snaphsot.forEach(doc=>{
-                    jobs.push(Object.assign({
-                      id : doc.id,
-                      data: doc.data()
-                    }))
-                })
-                this.setState({allJobs : jobs.reverse()})
-            })
-        }catch(error){
-            console.log(error)
-        }
-    }else {
-        try{
-          let firebase = loadFirebase()
-          firebase.firestore().collection('job').get()
-            .then(snaphsot => {
-                snaphsot.forEach(doc=>{
-                    jobs.push(Object.assign({
-                      id : doc.id,
-                      data : doc.data()
-                    }))
-                })
-                this.setState({allJobs : jobs})
-            })
-        }catch(error){
-            console.log(error)
-        }
-    }
+  getCities = (id) => {
+      const cities = getRecordsByCondition(CITY_COLLECTION, {
+        fieldName: "AREAID",
+        operator: '==',
+        value: id
+      })
+      this.setState({ cities });
+  };
+
+  sortByDate = (event) => {
+    this.setState({ [event.target.name]: event.target.value });
+    const sortDirection = (event.target.value == "new_to_old")? 'desc' : 'asc';
+      const jobs = getRecordsByCondition(JOB_COLLECTION, {}, {
+        fieldName: 'postedDate',
+        direction: sortDirection
+      })
+      this.setState({ allJobs: jobs });
   }
 
   getDate = (object) => {
@@ -494,8 +436,8 @@ export default class Index extends React.Component {
             </Link>
             <small><i>Posted on {this.getDate(Jobs.data.postedDate)}</i></small> 
             <div className="m-b">
-              <span className="badge badge-info" style={{marginRight:10, background:"#1D85CA"}}>{Jobs.data.employmentStatus}</span>
-              <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Jobs.data.japaneseSkill} and above</span>
+              <span className="badge badge-info" style={{marginRight:10, background: Jobs.data.employmentStatus == "Full-Time" ? "#692FC0" : "#2F9544"}}>{Jobs.data.employmentStatus}</span>
+              <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Jobs.data.japaneseSkill == "1" ? Jobs.data.japaneseSkill : `${Jobs.data.japaneseSkill} and above`}</span>
             </div>
                 <ul style={{listStyleType: "none", paddingLeft: 0}}>
                   <li><b>Working Location:</b> {this.jobLocation(Jobs.data.CITYID, Jobs.data.AREAID)}</li>
@@ -515,7 +457,7 @@ export default class Index extends React.Component {
       <div className="h-25">
       <div className="row">
         <div className="col-sm-8">
-          <h3>Total {this.state.allJobs.length} Jobs</h3>
+          <h2>Total {this.state.allJobs.length} Jobs</h2>
         </div>
         <div className="col-sm-4">
           <select name="sortby" id="dateFilter" className="btn-float select-css" onChange={this.dateSorted}>
@@ -542,8 +484,8 @@ export default class Index extends React.Component {
               </Link>
               <div className="m-b">
               <small><i>Posted on {this.getDate(Job.data.postedDate)}</i></small> &nbsp;
-                <span className="badge badge-info" style={{marginRight:10, background:"#1D85CA"}}>{Job.data.employmentStatus}</span>
-                <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Job.data.japaneseSkill} and above</span>
+                <span className="badge badge-info" style={{marginRight:10, background: Job.data.employmentStatus == "Full-Time" ? "#692FC0" : "#2F9544"}}>{Job.data.employmentStatus}</span>
+                <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Job.data.japaneseSkill == "1" ? Job.data.japaneseSkill : `${Job.data.japaneseSkill} and above`}</span>
               </div>
               <div className="row" style={{paddingBottom: 0, paddingTop: 0}}>
                 <div className="col-sm-6">
@@ -561,24 +503,15 @@ export default class Index extends React.Component {
         </tbody>
       </table>
     </div>
-    {this.state.filteredJob.length<=0 && this.state.noJobFound && <div className="container" style={{paddingTop: 30, paddingLeft: 50, fontSize: 30}}>No Jobs Found</div> }
+    
     <div className="container tab-pane" id="filter" style={{marginBottom: 30}}>
-    <div className="h-25">
-      <div className="row">
-        <div className="col-sm-8">
-          <h3>{this.state.filteredJob.length} Jobs</h3>
-        </div>
-        <div className="col-sm-4">
-        </div>
-      </div>
-      </div>
       <table ref={this.datatableRef2} id="example" className="display" style={{width:100+"%"}}>
-                    <thead className="thread-color">
-                        <tr>
-                          <td></td>
-                        </tr>
-                    </thead>
-                    <tbody>
+          <thead className="thread-color">
+            <tr>
+              <td><h3>{this.state.filteredJob.length} Jobs Found</h3></td>
+            </tr>
+          </thead>
+          <tbody>
          {this.state.filteredJob && this.state.filteredJob.map(Job => (
            <tr id={Job.id}>
             <td className="box" style={{paddingLeft: 40, paddingRight: 40}}>
@@ -588,8 +521,8 @@ export default class Index extends React.Component {
               </Link>
               <div className="m-b">
               <small><i>Posted on {this.getDate(Job.data.postedDate)}</i></small> &nbsp;
-                <span className="badge badge-info" style={{marginRight:10, background:"#1D85CA"}}>{Job.data.employmentStatus}</span>
-                <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Job.data.japaneseSkill} and above</span>
+                <span className="badge badge-info" style={{marginRight:10, background: Job.data.employmentStatus == "Full-Time" ? "#692FC0" : "#2F9544"}}>{Job.data.employmentStatus}</span>
+                <span className="badge badge-info" style={{background:"#1D85CA"}}>N{Job.data.japaneseSkill == "1" ? Job.data.japaneseSkill : `${Job.data.japaneseSkill} and above`}</span>
               </div>
               <div className="row" style={{paddingBottom: 0, paddingTop: 0}}>
                 <div className="col-sm-6">
