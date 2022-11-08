@@ -10,7 +10,7 @@
     "dotenv": "^8.2.0",
     "firebase": "^7.16.0",
     "jquery": "^3.5.1",
-    "next": "9.3.5",
+    "next": "13.0.2",
     "react": "16.13.1",
     "react-dom": "16.13.1",
     "simple-autoloader": "^0.2.0"
